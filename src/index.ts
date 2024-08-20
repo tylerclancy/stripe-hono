@@ -36,6 +36,32 @@ app.post('/checkout', async (c) => {
   }
 });
 
+app.post('/webhook', async (c) => {
+  const rawBody = await c.req.text();
+  const signature = c.req.header('stripe-signature');
+
+  let event;
+
+  try {
+    event = stripe.webhooks.constructEvent(
+      rawBody,
+      signature!,
+      process.env.STRIPE_WEBHOOK_SECRET!
+    );
+  } catch (error: any) {
+    console.error(`Webhook signature verification failed: ${error.message}`);
+    throw new HTTPException(400);
+  }
+
+  // Handle checkout.session.completed event.
+  if (event.type === 'checkout.session.completed') {
+    const session = event.data.object;
+    console.log(session);
+  }
+
+  return c.text('success');
+});
+
 app.get('/success', (c) => {
   return c.text('Thanks for your purchase!');
 });
